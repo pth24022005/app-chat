@@ -1,42 +1,57 @@
 const socket = io();
 
-const joinScreen = document.getElementById("join-screen");
-const chatScreen = document.getElementById("chat-screen");
+// ===== AUTH CHECK =====
+const user = JSON.parse(localStorage.getItem("user"));
+if (!user) window.location.href = "/login.html";
+
+document.getElementById("userInfo").innerText =
+  `${user.username} (${user.role})`;
+
+// ===== LOGOUT =====
+document.getElementById("logoutBtn").onclick = () => {
+  localStorage.clear();
+  window.location.href = "/login.html";
+};
+
+const joinScreen = document.getElementById("join");
+const chatScreen = document.getElementById("chatBox");
 const joinBtn = document.getElementById("joinBtn");
 const sendBtn = document.getElementById("sendBtn");
 const chatBox = document.getElementById("chat");
 const msgInput = document.getElementById("message");
-const statusText = document.getElementById("status-text");
-const onlineIndicator = document.getElementById("online-indicator");
+const displayInput = document.getElementById("displayName");
 
 let currentUser = "";
 
+// load display name cũ
+displayInput.value =
+  localStorage.getItem("displayName") || user.username;
+
+// ===== JOIN EVENT =====
 joinBtn.onclick = () => {
-  const username = document.getElementById("username").value.trim();
   const eventId = document.getElementById("eventId").value.trim();
-  
-  if (!username || !eventId) {
-    alert("Please fill in all fields");
+  const displayName = displayInput.value.trim();
+
+  if (!eventId || !displayName) {
+    alert("Vui lòng nhập Event ID và Tên hiển thị");
     return;
   }
 
-  currentUser = username;
+  currentUser = displayName;
+  localStorage.setItem("displayName", displayName);
 
-  // Emit event join
-  socket.emit("join-event", { username, eventId });
+  socket.emit("join-event", {
+    username: displayName,
+    eventId,
+    role: user.role,
+  });
 
-  // Switch UI
   joinScreen.classList.add("hidden");
   chatScreen.classList.remove("hidden");
-  statusText.innerText = `In Event: ${eventId}`;
-  onlineIndicator.classList.replace("bg-gray-300", "bg-green-500");
+  msgInput.focus();
 };
 
-sendBtn.onclick = sendMessage;
-msgInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
-
+// ===== SEND MESSAGE =====
 function sendMessage() {
   const text = msgInput.value.trim();
   if (!text) return;
@@ -45,6 +60,12 @@ function sendMessage() {
   msgInput.value = "";
 }
 
+sendBtn.onclick = sendMessage;
+msgInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
+// ===== SOCKET =====
 socket.on("chat-history", (messages) => {
   chatBox.innerHTML = "";
   messages.forEach(renderMessage);
@@ -54,46 +75,40 @@ socket.on("chat-message", renderMessage);
 
 socket.on("system-message", (text) => {
   const div = document.createElement("div");
-  div.className = "text-center text-[10px] uppercase tracking-widest text-gray-400 my-2";
+  div.className =
+    "text-center text-[10px] uppercase text-gray-400 my-2";
   div.innerText = text;
   chatBox.appendChild(div);
   scrollToBottom();
 });
 
+// ===== RENDER =====
 function renderMessage(msg) {
   const isMe = msg.username === currentUser;
-  
+
   const wrapper = document.createElement("div");
   wrapper.className = `flex flex-col ${isMe ? "items-end" : "items-start"}`;
 
-  const bubble = document.createElement("div");
-  bubble.className = `max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
-    isMe 
-    ? "bg-indigo-600 text-white rounded-tr-none" 
-    : "bg-white text-gray-800 rounded-tl-none border border-gray-100"
-  }`;
-
   if (!isMe) {
-    const nameTag = document.createElement("span");
-    nameTag.className = "text-[10px] font-bold text-gray-500 mb-1 ml-1";
-    nameTag.innerText = msg.username;
-    wrapper.appendChild(nameTag);
+    const name = document.createElement("span");
+    name.className = "text-[10px] font-bold text-gray-500 mb-1 ml-1";
+    name.innerText = msg.username;
+    wrapper.appendChild(name);
   }
 
+  const bubble = document.createElement("div");
+  bubble.className = `max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+    isMe
+      ? "bg-indigo-600 text-white rounded-tr-none"
+      : "bg-white text-gray-800 rounded-tl-none border"
+  }`;
   bubble.innerText = msg.text;
+
   wrapper.appendChild(bubble);
-
-  // Add simple timestamp
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const timeTag = document.createElement("span");
-  timeTag.className = "text-[9px] text-gray-400 mt-1 mx-1";
-  timeTag.innerText = time;
-  wrapper.appendChild(timeTag);
-
   chatBox.appendChild(wrapper);
   scrollToBottom();
 }
 
 function scrollToBottom() {
-  chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: 'smooth' });
+  chatBox.scrollTop = chatBox.scrollHeight;
 }

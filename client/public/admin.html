@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | EventLive</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .modal-active { display: flex !important; }
+  </style>
+</head>
+
+<body class="h-screen bg-slate-100 flex overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
+    <div class="p-6 border-b border-slate-800">
+      <h1 class="text-xl font-bold text-indigo-400">👑 Admin Panel</h1>
+      <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Event Monitor</p>
+    </div>
+
+    <div class="p-6 text-sm text-slate-400">
+      Status: <span class="text-green-400">Online</span>
+    </div>
+
+    <div class="mt-auto p-6">
+      <button onclick="logout()"
+        class="w-full text-sm text-red-400 hover:text-red-300 border border-red-500/30 rounded-lg py-2">
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-16 bg-white border-b flex items-center justify-between px-8">
+      <h2 class="font-semibold text-slate-700 text-lg">Active Event Clusters</h2>
+      <div id="msg-total"
+        class="text-xs bg-slate-100 px-3 py-1 rounded-full text-slate-600 font-medium">
+        0 Active Events
+      </div>
+    </header>
+
+    <div id="event-grid"
+      class="flex-1 p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    </div>
+  </main>
+
+  <!-- MODAL CHAT -->
+  <div id="chat-modal"
+    class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white w-full max-w-2xl h-[80vh] rounded-2xl flex flex-col">
+      <div class="p-4 border-b flex justify-between items-center bg-indigo-600 text-white">
+        <h3 id="modal-title" class="font-bold text-lg">Event</h3>
+        <button onclick="closeModal()">✕</button>
+      </div>
+
+      <div id="modal-chat-content"
+        class="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-3 text-sm"></div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+  <script>
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "/login.html";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login | EventLive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
+
+<div class="bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl">
+  <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
+
+  <input id="username"
+         class="w-full p-3 mb-3 border rounded"
+         placeholder="Username">
+
+  <input id="password"
+         type="password"
+         class="w-full p-3 mb-3 border rounded"
+         placeholder="Password">
+
+  <p id="msg" class="text-red-500 text-xs text-center mb-2"></p>
+
+  <button onclick="login()"
+    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded font-semibold transition">
+    Login
+  </button>
+
+  <!-- ✅ LINK ĐĂNG KÝ -->
+  <div class="mt-6 text-center">
+    <p class="text-xs text-gray-400">
+      Chưa có tài khoản?
+      <a href="/register.html"
+         class="text-indigo-600 font-bold hover:underline">
+        Đăng ký ngay
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+async function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("msg");
+
+  msg.innerText = "";
+
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    msg.innerText = data.msg || "Login failed";
+    return;
+  }
+
+  // lưu user
+  localStorage.setItem("user", JSON.stringify(data));
+
+  // 👉 PHÂN QUYỀN
+  if (data.role === "admin") {
+    window.location.href = "/admin.html";
+  } else {
+    window.location.href = "/index.html";
+  }
+}
+</script>
+
+</body>
+</html>
