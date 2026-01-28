@@ -5,61 +5,64 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Login | EventLive</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <link href="css/style.css" rel="stylesheet" />
     </head>
-
     <body
-        class="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600"
+        class="h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"
     >
-        <div class="bg-white w-full max-w-sm p-8 rounded-3xl shadow-2xl">
-            <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
-
-            <input
-                id="username"
-                class="w-full p-3 mb-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Username"
-            />
-
-            <input
-                id="password"
-                type="password"
-                class="w-full p-3 mb-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Password"
-            />
-
-            <p
-                id="msg"
-                class="text-red-500 text-xs text-center mb-2 min-h-[1rem]"
-            ></p>
-
-            <button
-                onclick="handleLogin()"
-                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded font-semibold transition"
-            >
-                Login
-            </button>
-
-            <div class="mt-6 text-center">
-                <p class="text-xs text-gray-400">
-                    Chưa có tài khoản?
-                    <a
-                        href="/register.html"
-                        class="text-indigo-600 font-bold hover:underline"
-                    >
-                        Đăng ký ngay
-                    </a>
-                </p>
+        <div
+            class="bg-white p-8 rounded-2xl shadow-2xl w-96 animate-fade-in-up"
+        >
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Login</h1>
+                <p class="text-sm text-gray-400">Welcome back to EventLive</p>
             </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase"
+                        >Username</label
+                    >
+                    <input
+                        type="text"
+                        id="username"
+                        class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        placeholder="admin or user"
+                    />
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 uppercase"
+                        >Password</label
+                    >
+                    <input
+                        type="password"
+                        id="password"
+                        class="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        placeholder="******"
+                    />
+                </div>
+                <p
+                    id="error-msg"
+                    class="text-red-500 text-xs text-center hidden font-bold"
+                ></p>
+                <button
+                    type="submit"
+                    class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg"
+                >
+                    Login
+                </button>
+            </form>
+
+            <p class="text-center text-sm text-gray-400 mt-4">
+                Chưa có tài khoản?
+                <a
+                    href="register.html"
+                    class="text-indigo-600 font-bold hover:underline"
+                    >Đăng ký ngay</a
+                >
+            </p>
         </div>
 
-        <script src="js/config.js"></script>
-        <script src="js/auth.js"></script>
-        <script>
-            // Cho phép ấn Enter để login
-            document
-                .getElementById("password")
-                .addEventListener("keypress", function (event) {
-                    if (event.key === "Enter") handleLogin();
-                });
-        </script>
+        <script type="module" src="js/auth.js"></script>
     </body>
 </html>

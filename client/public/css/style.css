@@ -1,0 +1,101 @@
+/* -----------------------------------------------------------
+   1. GLOBAL SETTINGS & FONTS
+----------------------------------------------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+body {
+    font-family: "Inter", sans-serif;
+    /* Giúp chữ hiển thị sắc nét hơn trên MacOS/iOS */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* -----------------------------------------------------------
+   2. CUSTOM SCROLLBAR (Thanh cuộn đẹp hơn mặc định)
+----------------------------------------------------------- */
+
+/* Áp dụng cho toàn bộ web (Chrome/Safari/Edge) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+/* Phần rãnh (track) của thanh cuộn */
+::-webkit-scrollbar-track {
+    background: #f1f5f9; /* slate-100 */
+    border-radius: 4px;
+}
+
+/* Phần tay cầm (thumb) để kéo */
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* slate-300 */
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+/* Khi di chuột vào tay cầm */
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* slate-400 */
+}
+
+/* --- Class ẩn thanh cuộn nhưng vẫn cuộn được (.no-scrollbar) --- */
+/* Dùng cho danh sách sự kiện để giao diện sạch sẽ */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+/* -----------------------------------------------------------
+   3. ANIMATIONS (Hiệu ứng chuyển động mượt mà)
+----------------------------------------------------------- */
+
+/* Keyframes: Hiện dần (Fade In) */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Keyframes: Trượt từ dưới lên (Fade In Up) */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Class để gọi Animation trong HTML */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* -----------------------------------------------------------
+   4. COMPONENT UTILITIES
+----------------------------------------------------------- */
+
+/* Xử lý Modal (Khi JS thêm class này thì modal hiện lên) */
+.modal-active {
+    display: flex !important;
+}
+
+/* Hiệu ứng bong bóng chat (Chat Bubble) */
+/* Đảm bảo tin nhắn dài sẽ tự xuống dòng */
+.break-words {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}

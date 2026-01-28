@@ -2,18 +2,15 @@
     "name": "eventlive",
     "version": "1.0.0",
     "scripts": {
-        "//--- COMMANDS FOR BACKEND ---": "",
         "gateway": "npm start --prefix backend/api-gateway",
         "auth": "npm start --prefix backend/auth-service",
         "event": "npm start --prefix backend/event-service",
         "chat": "npm start --prefix backend/chat-service",
-        "//--- COMMAND FOR FRONTEND ---": "",
-        "client": "serve client/public -p 3000",
-        "//--- MASTER COMMAND (RUN ALL) ---": "",
+        "client": "npx serve client/public -l 3000",
         "start": "concurrently \"npm run gateway\" \"npm run auth\" \"npm run event\" \"npm run chat\" \"npm run client\""
     },
     "devDependencies": {
         "concurrently": "^8.2.2",
-        "serve": "^14.2.1"
+        "serve": "^14.2.5"
     }
 }

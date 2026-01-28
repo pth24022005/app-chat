@@ -1,305 +1,143 @@
-// client/public/js/admin.js
+import { API_ROUTES, SOCKET_EVENTS, CHAT_SERVICE_URL } from "./config.js";
+import { request, requireAuth, logout } from "./auth.js";
 
-// 1. Kiểm tra quyền Admin
 const user = requireAuth("admin");
-if (!user) throw new Error("Unauthorized");
-
-// 2. Kết nối Socket
-const token = localStorage.getItem("token");
 const socket = io(CHAT_SERVICE_URL, {
-    auth: { token: token },
+    auth: { token: localStorage.getItem("accessToken") },
 });
 
-socket.emit("join-event", { role: "admin" });
-
-// Biến toàn cục
-let eventsMessages = {};
-let allEventsCache = []; // Lưu lại danh sách sự kiện để lấy dữ liệu khi bấm sửa
-let editingEventId = null; // Nếu null => Đang tạo mới. Nếu có ID => Đang sửa
-
-// --- PHẦN 1: QUẢN LÝ SỰ KIỆN (CRUD) ---
-
-async function loadEvents() {
-    try {
-        const res = await fetch(API_ROUTES.EVENTS);
-        const events = await res.json();
-        allEventsCache = events; // Lưu vào cache
-        renderEvents(events);
-    } catch (err) {
-        console.error("Lỗi tải sự kiện:", err);
-    }
-}
-
-function renderEvents(events) {
-    const grid = document.getElementById("event-grid");
-    grid.innerHTML = "";
-
-    if (!events || events.length === 0) {
-        grid.innerHTML =
-            "<p class='text-gray-400 col-span-full text-center'>Chưa có sự kiện nào.</p>";
-        return;
-    }
-
-    events.forEach((evt) => {
-        const div = document.createElement("div");
-        div.className =
-            "bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition relative group cursor-pointer flex flex-col justify-between";
-
-        // Format ngày tháng
-        let dateStr = "Chưa có ngày";
-        if (evt.startDate) {
-            dateStr = new Date(evt.startDate).toLocaleString("vi-VN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-            });
-        }
-
-        // Màu sắc category
-        let badgeColor = "bg-indigo-100 text-indigo-700";
-        if (evt.category === "Giải trí")
-            badgeColor = "bg-pink-100 text-pink-700";
-        if (evt.category === "Học tập")
-            badgeColor = "bg-yellow-100 text-yellow-700";
-        if (evt.category === "Họp nội bộ")
-            badgeColor = "bg-gray-100 text-gray-700";
-
-        div.innerHTML = `
-            <div>
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[10px] ${badgeColor} px-2 py-1 rounded font-bold uppercase tracking-wider">${evt.category || "Event"}</span>
-                    <span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-bold">ACTIVE</span>
-                </div>
-                <h3 class="font-bold text-lg text-slate-800 line-clamp-1 mb-1" title="${evt.name}">${evt.name}</h3>
-                <div class="text-xs text-gray-500 mb-3 flex flex-col gap-1">
-                    <p>📅 ${dateStr}</p>
-                    <p>📍 ${evt.location || "Online"}</p>
-                </div>
-                <p class="text-sm text-slate-500 mb-4 h-10 line-clamp-2">${evt.description || "Không có mô tả"}</p>
-            </div>
-            
-            <div class="flex justify-between items-center border-t pt-3 mt-auto">
-                <button onclick="openModal('${evt._id}', '${evt.name}')" class="text-indigo-600 text-xs font-bold hover:underline">Xem Chat</button>
-                
-                <div class="flex gap-2">
-                    <button onclick="openEditForm(event, '${evt._id}')" class="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 transition text-xs font-bold flex items-center gap-1">
-                        ✏️ Sửa
-                    </button>
-                    <button onclick="deleteEvent(event, '${evt._id}')" class="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition text-xs font-bold flex items-center gap-1">
-                        🗑 Xóa
-                    </button>
-                </div>
-            </div>
-        `;
-        grid.appendChild(div);
+// Hàm format ngày tháng (Để luôn ở đây cho tiện)
+function formatDate(dateString) {
+    if (!dateString) return "Chưa có lịch";
+    return new Date(dateString).toLocaleString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
     });
 }
 
-// --- LOGIC FORM (TẠO MỚI & SỬA) ---
+let allEvents = [];
+let editingId = null;
+let viewingId = null;
 
-// 1. Mở form TẠO MỚI
-window.openCreateForm = () => {
-    editingEventId = null; // Reset ID
+// Load sự kiện
+async function loadEvents() {
+    const data = await request(API_ROUTES.EVENTS);
+    if (data) {
+        allEvents = data;
+        const grid = document.getElementById("event-grid");
+        grid.innerHTML = "";
 
-    // UI Reset
-    document.getElementById("modal-form-title").innerText = "Tạo sự kiện mới";
-    document.getElementById("btn-save-event").innerText = "Tạo ngay";
-
-    // Clear Input
-    document.getElementById("new-event-name").value = "";
-    document.getElementById("new-event-desc").value = "";
-    document.getElementById("new-event-location").value = "";
-    document.getElementById("new-event-date").value = "";
-    document.getElementById("new-event-category").value = "Hội thảo";
-
-    document.getElementById("create-modal").classList.remove("hidden");
-};
-
-// 2. Mở form SỬA
-window.openEditForm = (e, id) => {
-    e.stopPropagation(); // Ngăn mở chat modal
-
-    const evt = allEventsCache.find((x) => x._id === id);
-    if (!evt) return;
-
-    editingEventId = id; // Set ID đang sửa
-
-    // UI Set
-    document.getElementById("modal-form-title").innerText = "Cập nhật sự kiện";
-    document.getElementById("btn-save-event").innerText = "Lưu thay đổi";
-
-    // Fill Data
-    document.getElementById("new-event-name").value = evt.name;
-    document.getElementById("new-event-desc").value = evt.description || "";
-    document.getElementById("new-event-location").value = evt.location || "";
-    document.getElementById("new-event-category").value =
-        evt.category || "Hội thảo";
-
-    // Xử lý ngày tháng cho input datetime-local
-    if (evt.startDate) {
-        const d = new Date(evt.startDate);
-        const offset = d.getTimezoneOffset() * 60000;
-        const localISOTime = new Date(d - offset).toISOString().slice(0, 16);
-        document.getElementById("new-event-date").value = localISOTime;
-    }
-
-    document.getElementById("create-modal").classList.remove("hidden");
-};
-
-// 3. Xử lý LƯU (Chung cho cả Tạo & Sửa)
-window.handleSaveEvent = async () => {
-    const name = document.getElementById("new-event-name").value;
-    const desc = document.getElementById("new-event-desc").value;
-    const startDate = document.getElementById("new-event-date").value;
-    const location = document.getElementById("new-event-location").value;
-    const category = document.getElementById("new-event-category").value;
-
-    if (!name || !startDate) return alert("Vui lòng nhập tên và thời gian!");
-
-    const payload = {
-        name,
-        description: desc,
-        startDate,
-        location,
-        category,
-        username: user.username,
-    };
-
-    try {
-        let res;
-
-        if (editingEventId) {
-            // --- SỬA (PUT) ---
-            res = await fetch(`${API_ROUTES.EVENTS}/${editingEventId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
-        } else {
-            // --- TẠO MỚI (POST) ---
-            res = await fetch(API_ROUTES.EVENTS, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
-        }
-
-        if (res.ok) {
-            document.getElementById("create-modal").classList.add("hidden");
-            loadEvents(); // Reload list
-            if (editingEventId) alert("Cập nhật thành công!");
-        } else {
-            const data = await res.json();
-            alert("Lỗi: " + (data.msg || "Thất bại"));
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Lỗi kết nối Server");
-    }
-};
-
-// Xóa sự kiện
-window.deleteEvent = async (e, id) => {
-    e.stopPropagation();
-    if (
-        !confirm(
-            "CẢNH BÁO: Hành động này sẽ xóa sự kiện và toàn bộ tin nhắn. Bạn chắc chắn chứ?",
-        )
-    )
-        return;
-
-    try {
-        await fetch(`${API_ROUTES.EVENTS}/${id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
+        data.forEach((evt) => {
+            const div = document.createElement("div");
+            div.className =
+                "bg-white p-5 rounded-xl border shadow-sm hover:shadow-md transition flex flex-col justify-between";
+            div.innerHTML = `
+                <div>
+                    <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold uppercase">${evt.category || "Event"}</span>
+                    <h3 class="font-bold text-lg mt-2">${evt.name}</h3>
+                    <p class="text-xs text-gray-500 mb-2">📅 ${formatDate(evt.startDate)} | 📍 ${evt.location || "Online"}</p>
+                    <p class="text-sm text-gray-500 line-clamp-2">${evt.description || ""}</p>
+                </div>
+                <div class="border-t pt-3 mt-4 flex justify-between">
+                    <button class="text-indigo-600 text-xs font-bold btn-chat">Xem Chat</button>
+                    <div class="flex gap-2">
+                        <button class="text-blue-500 text-xs font-bold btn-edit">Sửa</button>
+                        <button class="text-red-500 text-xs font-bold btn-delete">Xóa</button>
+                    </div>
+                </div>
+            `;
+            // Gắn sự kiện click
+            div.querySelector(".btn-chat").onclick = () =>
+                openChat(evt._id, evt.name);
+            div.querySelector(".btn-edit").onclick = () => openEdit(evt._id);
+            div.querySelector(".btn-delete").onclick = () =>
+                deleteEvent(evt._id);
+            grid.appendChild(div);
         });
-
-        socket.emit("admin-delete-event", id);
-        loadEvents();
-        closeModal();
-    } catch (err) {
-        console.error(err);
     }
-};
-
-// --- PHẦN 2: XEM TIN NHẮN (SOCKET) ---
-
-const modal = document.getElementById("chat-modal");
-const modalContent = document.getElementById("modal-chat-content");
-let currentViewingId = null;
-
-window.openModal = (id, name) => {
-    currentViewingId = id;
-    document.getElementById("modal-title").innerText = name;
-    modalContent.innerHTML =
-        "<p class='text-center text-gray-400'>Đang tải lịch sử...</p>";
-    modal.classList.add("modal-active");
-
-    // Gửi yêu cầu lấy lịch sử
-    socket.emit("join-event", { eventId: id });
-};
-
-window.closeModal = () => {
-    modal.classList.remove("modal-active");
-    currentViewingId = null;
-};
-
-function appendMsgToModal(msg) {
-    const div = document.createElement("div");
-    div.className =
-        "bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col";
-
-    let timeStr = "";
-    try {
-        timeStr = new Date(msg.createdAt).toLocaleTimeString();
-    } catch (e) {}
-
-    div.innerHTML = `
-        <span class="font-bold text-indigo-600 text-xs mb-1">${msg.username} <span class="font-normal text-gray-400">(${timeStr})</span></span>
-        <span class="text-slate-700">${msg.text}</span>
-    `;
-    modalContent.appendChild(div);
-    modalContent.scrollTop = modalContent.scrollHeight;
 }
 
-// Socket Listeners
-socket.on("admin-new-message", (msg) => {
-    if (!eventsMessages[msg.eventId]) eventsMessages[msg.eventId] = [];
-    eventsMessages[msg.eventId].push(msg);
+// Chức năng CRUD
+function openEdit(id) {
+    editingId = id;
+    const evt = allEvents.find((e) => e._id === id);
+    document.getElementById("modal-form-title").innerText = "Cập nhật sự kiện";
+    document.getElementById("new-event-name").value = evt.name;
+    document.getElementById("new-event-desc").value = evt.description;
+    document.getElementById("new-event-location").value = evt.location;
+    document.getElementById("create-modal").classList.remove("hidden");
+}
 
-    if (currentViewingId === msg.eventId) {
-        const emptyText = modalContent.querySelector("p.italic");
-        if (emptyText) emptyText.remove();
-        appendMsgToModal(msg);
-    }
-});
+async function saveEvent() {
+    const payload = {
+        name: document.getElementById("new-event-name").value,
+        description: document.getElementById("new-event-desc").value,
+        location: document.getElementById("new-event-location").value,
+        startDate: document.getElementById("new-event-date").value,
+        category: document.getElementById("new-event-category").value,
+        username: user.username,
+    };
+    const url = editingId
+        ? `${API_ROUTES.EVENTS}/${editingId}`
+        : API_ROUTES.EVENTS;
+    const method = editingId ? "PUT" : "POST";
 
-socket.on("chat-history", (msgs) => {
-    modalContent.innerHTML = "";
-    if (!msgs || msgs.length === 0) {
-        modalContent.innerHTML =
-            "<p class='text-center text-gray-400 italic'>Chưa có tin nhắn nào</p>";
-        return;
-    }
-
-    const eventId = msgs[0].eventId;
-    eventsMessages[eventId] = msgs;
-
-    if (currentViewingId === eventId) {
-        msgs.forEach(appendMsgToModal);
-    }
-});
-
-// Khởi chạy
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("🚀 Admin Ready");
+    await request(url, method, payload);
+    document.getElementById("create-modal").classList.add("hidden");
     loadEvents();
+}
+
+async function deleteEvent(id) {
+    if (confirm("Xóa sự kiện này?")) {
+        await request(`${API_ROUTES.EVENTS}/${id}`, "DELETE");
+        socket.emit(SOCKET_EVENTS.ADMIN_DELETE_EVENT, id);
+        loadEvents();
+    }
+}
+
+// Chức năng Chat
+function openChat(id, name) {
+    viewingId = id;
+    document.getElementById("modal-title").innerText = name;
+    document.getElementById("modal-chat-content").innerHTML = "";
+    document.getElementById("chat-modal").classList.add("flex"); // class flex để hiện
+    document.getElementById("chat-modal").classList.remove("hidden");
+    socket.emit(SOCKET_EVENTS.JOIN_EVENT, {
+        eventId: id,
+        role: "admin",
+        username: "Admin",
+    });
+}
+
+socket.on(SOCKET_EVENTS.CHAT_HISTORY, (msgs) => {
+    if (msgs.length > 0 && msgs[0].eventId === viewingId) {
+        msgs.forEach((msg) => appendMsg(msg));
+    }
 });
+socket.on(SOCKET_EVENTS.ADMIN_NEW_MESSAGE, (msg) => {
+    if (msg.eventId === viewingId) appendMsg(msg);
+});
+
+function appendMsg(msg) {
+    const div = document.createElement("div");
+    div.className = "bg-white p-2 rounded border mb-2 text-sm";
+    div.innerHTML = `<b>${msg.username}:</b> ${msg.text}`;
+    document.getElementById("modal-chat-content").appendChild(div);
+}
+
+// Init
+loadEvents();
+document.getElementById("btn-logout").onclick = logout;
+document.getElementById("btn-open-create").onclick = () => {
+    editingId = null;
+    document.getElementById("modal-form-title").innerText = "Tạo mới";
+    document.getElementById("create-modal").classList.remove("hidden");
+};
+document.getElementById("btn-save-event").onclick = saveEvent;
+document.getElementById("btn-cancel-create").onclick = () =>
+    document.getElementById("create-modal").classList.add("hidden");
+document.getElementById("btn-close-chat").onclick = () =>
+    document.getElementById("chat-modal").classList.add("hidden");

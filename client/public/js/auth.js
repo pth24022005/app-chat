@@ -1,107 +1,126 @@
-// client/public/js/auth.js
+import { API_ROUTES } from "./config.js";
 
-// --- XỬ LÝ LOGIN ---
-async function handleLogin() {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
-    const msg = document.getElementById("msg");
+// --- PHẦN 1: CÁC HÀM DÙNG CHUNG (Export để file khác dùng) ---
 
-    if (!username || !password) {
-        msg.innerText = "Vui lòng nhập đầy đủ thông tin";
-        return;
+export function getUser() {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+}
+
+export function requireAuth(roleRequired = null) {
+    const user = getUser();
+    const token = localStorage.getItem("accessToken");
+    if (!user || !token) {
+        window.location.href = "/login.html";
+        return null;
     }
+    if (roleRequired && user.role !== roleRequired) {
+        alert("Không có quyền truy cập!");
+        window.location.href = "/index.html";
+        return null;
+    }
+    return user;
+}
 
-    // Hiển thị trạng thái đang xử lý
-    msg.innerText = "Đang kết nối...";
-    msg.className = "text-blue-500 text-xs text-center mb-2 font-medium";
+export function logout() {
+    localStorage.clear();
+    window.location.href = "/login.html";
+}
+
+// Hàm gọi API (Thay thế cho file api.js cũ)
+export async function request(url, method = "GET", body = null) {
+    const token = localStorage.getItem("accessToken");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const config = { method, headers };
+    if (body) config.body = JSON.stringify(body);
 
     try {
-        const res = await fetch(API_ROUTES.LOGIN, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-        });
-
-        // --- ĐOẠN FIX QUAN TRỌNG: Kiểm tra Content-Type ---
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            // Nếu server trả về HTML lỗi (504 Gateway Timeout, 404, etc.)
-            throw new Error(
-                `Lỗi kết nối Server (${res.status}: ${res.statusText}). Vui lòng kiểm tra lại Backend.`,
-            );
-        }
-
+        const res = await fetch(url, config);
         const data = await res.json();
-
-        if (!res.ok) throw new Error(data.msg || "Đăng nhập thất bại");
-
-        // Lưu Token và User
-        localStorage.setItem("token", data.token);
-        localStorage.setItem(
-            "user",
-            JSON.stringify({
-                username: data.username,
-                role: data.role,
-            }),
-        );
-
-        // Chuyển hướng
-        window.location.href =
-            data.role === "admin" ? "/admin.html" : "/index.html";
+        if (res.status === 401) {
+            logout(); // Hết hạn token thì logout luôn
+            return null;
+        }
+        if (!res.ok) throw new Error(data.msg || "Lỗi Server");
+        return data;
     } catch (err) {
         console.error(err);
-        msg.className = "text-red-500 text-xs text-center mb-2 font-bold";
-        msg.innerText = err.message;
+        alert(err.message);
+        throw err;
     }
 }
 
-// --- XỬ LÝ REGISTER ---
-async function handleRegister() {
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
-    const password2 = document.getElementById("password2").value;
+// --- PHẦN 2: LOGIC TRANG LOGIN & REGISTER ---
 
-    const msg = document.getElementById("msg");
-    const btnText = document.getElementById("btnText");
-    const spinner = document.getElementById("spinner");
-    const regBtn = document.getElementById("regBtn");
+document.addEventListener("DOMContentLoaded", () => {
+    // Xử lý Form Đăng Nhập
+    const loginForm = document.getElementById("login-form");
+    if (loginForm) {
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
 
-    if (!username || !password) return (msg.innerText = "Thiếu thông tin!");
-    if (password !== password2) return (msg.innerText = "Mật khẩu không khớp!");
+            try {
+                const res = await fetch(API_ROUTES.AUTH_LOGIN, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await res.json();
 
-    // UI Loading
-    msg.innerText = "";
-    btnText.classList.add("hidden");
-    spinner.classList.remove("hidden");
-    regBtn.disabled = true;
-
-    try {
-        const res = await fetch(API_ROUTES.REGISTER, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
+                if (res.ok) {
+                    localStorage.setItem("accessToken", data.accessToken);
+                    localStorage.setItem(
+                        "user",
+                        JSON.stringify({
+                            username: data.username,
+                            role: data.role,
+                        }),
+                    );
+                    window.location.href =
+                        data.role === "admin" ? "/admin.html" : "/index.html";
+                } else {
+                    document.getElementById("error-msg").innerText = data.msg;
+                    document
+                        .getElementById("error-msg")
+                        .classList.remove("hidden");
+                }
+            } catch (err) {
+                alert("Lỗi kết nối");
+            }
         });
-
-        // Kiểm tra Content-Type
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            throw new Error(`Lỗi kết nối Server (${res.status})`);
-        }
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.msg);
-
-        // Success
-        msg.className = "text-green-500 text-xs text-center font-medium";
-        msg.innerText = "Đăng ký thành công! Đang chuyển hướng...";
-        setTimeout(() => (window.location.href = "/login.html"), 1500);
-    } catch (err) {
-        msg.className = "text-red-500 text-xs text-center font-medium";
-        msg.innerText = err.message;
-
-        // Reset nút bấm
-        btnText.classList.remove("hidden");
-        spinner.classList.add("hidden");
-        regBtn.disabled = false;
     }
-}
+
+    // Xử lý Form Đăng Ký
+    const regForm = document.getElementById("register-form");
+    if (regForm) {
+        regForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const username = document.getElementById("reg-username").value;
+            const password = document.getElementById("reg-password").value;
+
+            try {
+                const res = await fetch(API_ROUTES.AUTH_REGISTER, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert("Đăng ký thành công! Hãy đăng nhập.");
+                    window.location.href = "login.html";
+                } else {
+                    document.getElementById("reg-error").innerText = data.msg;
+                    document
+                        .getElementById("reg-error")
+                        .classList.remove("hidden");
+                }
+            } catch (err) {
+                alert("Lỗi kết nối");
+            }
+        });
+    }
+});
