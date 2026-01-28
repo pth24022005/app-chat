@@ -11,6 +11,10 @@ async function handleLogin() {
         return;
     }
 
+    // Hiển thị trạng thái đang xử lý
+    msg.innerText = "Đang kết nối...";
+    msg.className = "text-blue-500 text-xs text-center mb-2 font-medium";
+
     try {
         const res = await fetch(API_ROUTES.LOGIN, {
             method: "POST",
@@ -18,15 +22,35 @@ async function handleLogin() {
             body: JSON.stringify({ username, password }),
         });
 
+        // --- ĐOẠN FIX QUAN TRỌNG: Kiểm tra Content-Type ---
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            // Nếu server trả về HTML lỗi (504 Gateway Timeout, 404, etc.)
+            throw new Error(
+                `Lỗi kết nối Server (${res.status}: ${res.statusText}). Vui lòng kiểm tra lại Backend.`,
+            );
+        }
+
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.msg || "Đăng nhập thất bại");
 
-        // Lưu user và chuyển hướng
-        localStorage.setItem("user", JSON.stringify(data));
+        // Lưu Token và User
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+            "user",
+            JSON.stringify({
+                username: data.username,
+                role: data.role,
+            }),
+        );
+
+        // Chuyển hướng
         window.location.href =
             data.role === "admin" ? "/admin.html" : "/index.html";
     } catch (err) {
+        console.error(err);
+        msg.className = "text-red-500 text-xs text-center mb-2 font-bold";
         msg.innerText = err.message;
     }
 }
@@ -58,6 +82,12 @@ async function handleRegister() {
             body: JSON.stringify({ username, password }),
         });
 
+        // Kiểm tra Content-Type
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error(`Lỗi kết nối Server (${res.status})`);
+        }
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.msg);
 
@@ -68,14 +98,10 @@ async function handleRegister() {
     } catch (err) {
         msg.className = "text-red-500 text-xs text-center font-medium";
         msg.innerText = err.message;
+
+        // Reset nút bấm
         btnText.classList.remove("hidden");
         spinner.classList.add("hidden");
         regBtn.disabled = false;
     }
-}
-
-// Gắn sự kiện Logout (dùng chung cho các trang)
-function logout() {
-    localStorage.clear();
-    window.location.href = "/login.html";
 }

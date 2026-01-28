@@ -4,13 +4,11 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Admin Dashboard | EventLive</title>
-
         <script src="https://cdn.tailwindcss.com"></script>
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
             rel="stylesheet"
         />
-
         <style>
             body {
                 font-family: "Inter", sans-serif;
@@ -18,20 +16,8 @@
             .modal-active {
                 display: flex !important;
             }
-            /* Scrollbar đẹp hơn */
-            ::-webkit-scrollbar {
-                width: 6px;
-            }
-            ::-webkit-scrollbar-track {
-                background: #f1f1f1;
-            }
-            ::-webkit-scrollbar-thumb {
-                background: #cbd5e1;
-                border-radius: 3px;
-            }
         </style>
     </head>
-
     <body class="h-screen bg-slate-100 flex overflow-hidden">
         <aside
             class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex shrink-0"
@@ -40,21 +26,11 @@
                 <h1 class="text-xl font-bold text-indigo-400">
                     👑 Admin Panel
                 </h1>
-                <p
-                    class="text-[10px] text-slate-500 uppercase tracking-widest mt-1"
-                >
-                    Event Monitor
-                </p>
             </div>
-
-            <div class="p-6 text-sm text-slate-400">
-                Status: <span class="text-green-400 font-bold">● Online</span>
-            </div>
-
             <div class="mt-auto p-6">
                 <button
-                    onclick="logout()"
-                    class="w-full text-sm text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/30 rounded-lg py-2 transition"
+                    id="btn-logout"
+                    class="w-full text-sm text-red-400 border border-red-500/30 rounded-lg py-2 hover:bg-red-500/20"
                 >
                     Logout
                 </button>
@@ -63,24 +39,18 @@
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
             <header
-                class="h-16 bg-white border-b flex items-center justify-between px-8 shadow-sm z-10"
+                class="h-16 bg-white border-b flex items-center justify-between px-8 shadow-sm"
             >
                 <h2 class="font-semibold text-slate-700 text-lg">
                     Quản lý Sự Kiện
                 </h2>
-
                 <button
-                    onclick="
-                        document
-                            .getElementById('create-modal')
-                            .classList.remove('hidden')
-                    "
-                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-lg transition transform active:scale-95"
+                    id="btn-open-create"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-lg"
                 >
                     + Tạo Sự Kiện Mới
                 </button>
             </header>
-
             <div
                 id="event-grid"
                 class="flex-1 p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 content-start"
@@ -92,9 +62,12 @@
             class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm"
         >
             <div
-                class="bg-white p-6 rounded-xl w-96 shadow-2xl animate-fade-in-up"
+                class="bg-white p-6 rounded-xl w-96 shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-                <h3 class="text-xl font-bold mb-4 text-slate-800">
+                <h3
+                    id="modal-form-title"
+                    class="text-xl font-bold mb-4 text-slate-800"
+                >
                     Tạo sự kiện mới
                 </h3>
 
@@ -103,35 +76,62 @@
                 >
                 <input
                     id="new-event-name"
-                    class="w-full border p-2 rounded mb-3 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="VD: Họp báo ra mắt sản phẩm"
+                    class="w-full border p-2 rounded mb-3"
+                    placeholder="Tên sự kiện..."
                 />
 
                 <label class="text-xs font-bold text-gray-500 uppercase"
-                    >Mô tả ngắn</label
+                    >Mô tả</label
+                >
+                <textarea
+                    id="new-event-desc"
+                    class="w-full border p-2 rounded mb-3"
+                    placeholder="Mô tả..."
+                ></textarea>
+
+                <label class="text-xs font-bold text-gray-500 uppercase"
+                    >Thời gian</label
                 >
                 <input
-                    id="new-event-desc"
-                    class="w-full border p-2 rounded mb-6 focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="VD: Trao đổi Q&A"
+                    type="datetime-local"
+                    id="new-event-date"
+                    class="w-full border p-2 rounded mb-3"
                 />
+
+                <label class="text-xs font-bold text-gray-500 uppercase"
+                    >Địa điểm</label
+                >
+                <input
+                    id="new-event-location"
+                    class="w-full border p-2 rounded mb-3"
+                    placeholder="Địa điểm..."
+                />
+
+                <label class="text-xs font-bold text-gray-500 uppercase"
+                    >Thể loại</label
+                >
+                <select
+                    id="new-event-category"
+                    class="w-full border p-2 rounded mb-6 bg-white"
+                >
+                    <option value="Hội thảo">Hội thảo</option>
+                    <option value="Học tập">Học tập</option>
+                    <option value="Giải trí">Giải trí</option>
+                    <option value="Họp nội bộ">Họp nội bộ</option>
+                </select>
 
                 <div class="flex justify-end gap-2">
                     <button
-                        onclick="
-                            document
-                                .getElementById('create-modal')
-                                .classList.add('hidden')
-                        "
+                        id="btn-cancel-create"
                         class="text-gray-500 px-3 py-2 hover:bg-gray-100 rounded"
                     >
                         Hủy
                     </button>
                     <button
-                        onclick="createNewEvent()"
+                        id="btn-save-event"
                         class="bg-indigo-600 text-white px-4 py-2 rounded font-bold hover:bg-indigo-700"
                     >
-                        Tạo ngay
+                        Lưu
                     </button>
                 </div>
             </div>
@@ -148,32 +148,24 @@
                     class="p-4 border-b flex justify-between items-center bg-slate-800 text-white"
                 >
                     <h3 class="font-bold text-lg flex items-center gap-2">
-                        <span class="text-indigo-400">#</span>
-                        <span id="modal-title">Event Name</span>
+                        <span class="text-indigo-400">#</span
+                        ><span id="modal-title">...</span>
                     </h3>
                     <button
-                        onclick="closeModal()"
+                        id="btn-close-chat"
                         class="text-slate-400 hover:text-white text-xl"
                     >
                         ✕
                     </button>
                 </div>
-
                 <div
                     id="modal-chat-content"
                     class="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-3 text-sm"
                 ></div>
-
-                <div
-                    class="p-3 bg-gray-50 border-t text-center text-xs text-gray-400"
-                >
-                    Chế độ xem (Admin View Only)
-                </div>
             </div>
         </div>
 
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="js/config.js"></script>
-        <script src="js/admin.js"></script>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <script type="module" src="js/controllers/admin.js"></script>
     </body>
 </html>

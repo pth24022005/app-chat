@@ -5,8 +5,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>EventLive Chat</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .no-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+        </style>
     </head>
-
     <body
         class="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 font-sans"
     >
@@ -27,7 +31,7 @@
                     </p>
                 </div>
                 <button
-                    onclick="logout()"
+                    id="btn-logout"
                     class="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-3 py-1 rounded-full hover:bg-red-50 transition"
                 >
                     Logout
@@ -36,80 +40,71 @@
 
             <div
                 id="join-screen"
-                class="flex-1 flex flex-col p-6 gap-4 overflow-hidden relative"
+                class="flex-1 flex flex-col p-4 gap-4 overflow-hidden relative"
             >
-                <div class="text-center mb-2">
+                <div class="text-center mb-1">
                     <h3 class="font-bold text-gray-800 text-xl">
-                        Sự kiện đang diễn ra
+                        Sự kiện nổi bật
                     </h3>
-                    <p class="text-sm text-gray-400">
-                        Chọn một phòng để tham gia chat
+                    <p class="text-xs text-gray-400">
+                        Chọn phòng để tham gia thảo luận
                     </p>
                 </div>
-
-                <div class="w-full mb-2">
+                <div class="w-full">
                     <label
                         class="text-[10px] font-bold text-gray-400 uppercase ml-1"
-                        >Tên hiển thị của bạn</label
+                        >Tên hiển thị</label
                     >
                     <input
                         id="displayName"
-                        class="w-full p-3 rounded-xl border-2 border-indigo-100 focus:border-indigo-500 outline-none text-center font-bold text-gray-700 transition"
+                        class="w-full p-3 rounded-xl border-2 border-indigo-100 outline-none text-center font-bold text-gray-700"
                         placeholder="Nhập tên..."
                     />
                 </div>
-
                 <div
                     id="event-list"
-                    class="flex-1 overflow-y-auto space-y-3 pr-1 pb-4"
-                >
-                    <div
-                        class="flex flex-col items-center justify-center h-full text-gray-400 gap-2"
-                    >
-                        <svg
-                            class="animate-spin h-6 w-6"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                        >
-                            <circle
-                                class="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                stroke-width="4"
-                            ></circle>
-                            <path
-                                class="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                        </svg>
-                        <p class="text-xs">Đang tải danh sách...</p>
-                    </div>
-                </div>
+                    class="flex-1 overflow-y-auto space-y-3 pr-1 pb-4 no-scrollbar"
+                ></div>
             </div>
 
             <div id="chat-screen" class="hidden flex-1 flex flex-col bg-white">
                 <div
                     id="room-header"
-                    class="bg-indigo-50 text-indigo-700 text-xs font-bold py-2 text-center border-b border-indigo-100 flex justify-between px-4 items-center"
+                    class="bg-indigo-50 border-b border-indigo-100 flex justify-between px-4 py-2 items-center shadow-sm"
                 >
-                    <span id="room-name-display">Phòng: ...</span>
+                    <div class="flex flex-col overflow-hidden">
+                        <span
+                            id="room-name-display"
+                            class="font-bold text-indigo-800 text-sm truncate"
+                            >...</span
+                        >
+                        <div class="flex items-center gap-2">
+                            <span
+                                id="room-info-display"
+                                class="text-[10px] text-indigo-500 truncate max-w-[150px]"
+                                >...</span
+                            >
+                            <span
+                                class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-green-200"
+                            >
+                                <span
+                                    class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"
+                                ></span>
+                                <span id="online-count">0</span> Online
+                            </span>
+                        </div>
+                    </div>
                     <button
-                        onclick="leaveEvent()"
-                        class="text-[10px] text-gray-500 underline hover:text-red-500"
+                        id="btn-leave"
+                        class="shrink-0 text-[10px] text-gray-500 bg-white border px-2 py-1 rounded hover:bg-red-50"
                     >
                         Rời phòng
                     </button>
                 </div>
-
                 <div
                     id="chat-content"
                     class="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-2 scroll-smooth"
                 ></div>
-
                 <div class="p-3 flex gap-2 border-t bg-white">
                     <input
                         id="message-input"
@@ -119,29 +114,15 @@
                     />
                     <button
                         id="send-btn"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl font-bold transition shadow-md active:scale-95"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl font-bold transition"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-5 h-5"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                            />
-                        </svg>
+                        ➤
                     </button>
                 </div>
             </div>
         </div>
 
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="js/config.js"></script>
-        <script src="js/client.js"></script>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <script type="module" src="js/controllers/client.js"></script>
     </body>
 </html>
