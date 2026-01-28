@@ -1,68 +1,147 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>EventLive Chat</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/socket.io/socket.io.js"></script>
-</head>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>EventLive Chat</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
 
-<body class="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
-
-<div class="bg-white w-full max-w-md h-[85vh] rounded-3xl shadow-2xl flex flex-col">
-
-  <!-- HEADER -->
-  <div class="p-4 border-b flex justify-between items-center">
-    <div>
-      <h2 class="font-bold text-lg">🎉 EventLive</h2>
-      <p class="text-xs text-gray-500">
-        Logged in as <b id="userInfo"></b>
-      </p>
-    </div>
-    <button id="logoutBtn" class="text-xs text-red-500">Logout</button>
-  </div>
-
-  <!-- JOIN -->
-  <div id="join" class="flex-1 flex flex-col justify-center p-6 gap-4">
-    <input
-      id="displayName"
-      class="p-3 rounded-xl border"
-      placeholder="Tên hiển thị"
-    />
-    <input
-      id="eventId"
-      class="p-3 rounded-xl border"
-      placeholder="Event ID"
-    />
-    <button
-      id="joinBtn"
-      class="bg-indigo-600 text-white p-3 rounded-xl"
+    <body
+        class="h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 font-sans"
     >
-      Join Event
-    </button>
-  </div>
+        <div
+            class="bg-white w-full max-w-md h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden relative"
+        >
+            <div
+                class="p-4 border-b flex justify-between items-center bg-gray-50 z-10 shadow-sm"
+            >
+                <div>
+                    <h2
+                        class="font-bold text-lg text-indigo-600 flex items-center gap-2"
+                    >
+                        🎉 EventLive
+                    </h2>
+                    <p class="text-xs text-gray-500">
+                        Hi, <b id="userInfo">User</b>
+                    </p>
+                </div>
+                <button
+                    onclick="logout()"
+                    class="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-3 py-1 rounded-full hover:bg-red-50 transition"
+                >
+                    Logout
+                </button>
+            </div>
 
-  <!-- CHAT -->
-  <div id="chatBox" class="hidden flex-1 flex flex-col">
-    <div id="chat" class="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-2"></div>
+            <div
+                id="join-screen"
+                class="flex-1 flex flex-col p-6 gap-4 overflow-hidden relative"
+            >
+                <div class="text-center mb-2">
+                    <h3 class="font-bold text-gray-800 text-xl">
+                        Sự kiện đang diễn ra
+                    </h3>
+                    <p class="text-sm text-gray-400">
+                        Chọn một phòng để tham gia chat
+                    </p>
+                </div>
 
-    <div class="p-3 flex gap-2 border-t">
-      <input
-        id="message"
-        class="flex-1 p-2 border rounded-lg"
-        placeholder="Type message..."
-      />
-      <button
-        id="sendBtn"
-        class="bg-indigo-600 text-white px-4 rounded-lg"
-      >
-        Send
-      </button>
-    </div>
-  </div>
+                <div class="w-full mb-2">
+                    <label
+                        class="text-[10px] font-bold text-gray-400 uppercase ml-1"
+                        >Tên hiển thị của bạn</label
+                    >
+                    <input
+                        id="displayName"
+                        class="w-full p-3 rounded-xl border-2 border-indigo-100 focus:border-indigo-500 outline-none text-center font-bold text-gray-700 transition"
+                        placeholder="Nhập tên..."
+                    />
+                </div>
 
-</div>
+                <div
+                    id="event-list"
+                    class="flex-1 overflow-y-auto space-y-3 pr-1 pb-4"
+                >
+                    <div
+                        class="flex flex-col items-center justify-center h-full text-gray-400 gap-2"
+                    >
+                        <svg
+                            class="animate-spin h-6 w-6"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                            ></circle>
+                            <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                        </svg>
+                        <p class="text-xs">Đang tải danh sách...</p>
+                    </div>
+                </div>
+            </div>
 
-<script src="client.js"></script>
-</body>
+            <div id="chat-screen" class="hidden flex-1 flex flex-col bg-white">
+                <div
+                    id="room-header"
+                    class="bg-indigo-50 text-indigo-700 text-xs font-bold py-2 text-center border-b border-indigo-100 flex justify-between px-4 items-center"
+                >
+                    <span id="room-name-display">Phòng: ...</span>
+                    <button
+                        onclick="leaveEvent()"
+                        class="text-[10px] text-gray-500 underline hover:text-red-500"
+                    >
+                        Rời phòng
+                    </button>
+                </div>
+
+                <div
+                    id="chat-content"
+                    class="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-2 scroll-smooth"
+                ></div>
+
+                <div class="p-3 flex gap-2 border-t bg-white">
+                    <input
+                        id="message-input"
+                        class="flex-1 p-3 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-300 transition text-sm"
+                        placeholder="Nhập tin nhắn..."
+                        autocomplete="off"
+                    />
+                    <button
+                        id="send-btn"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-xl font-bold transition shadow-md active:scale-95"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-5 h-5"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="js/config.js"></script>
+        <script src="js/client.js"></script>
+    </body>
 </html>
