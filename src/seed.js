@@ -29,7 +29,7 @@ async function seed() {
             );
         }
 
-        // --- 2. TẠO SỰ KIỆN MẪU ---
+        // --- 2. TẠ0 SỰ KIỆN MẪU ---
         // Vì bạn muốn giữ dữ liệu cũ, code này sẽ tạo thêm 2 sự kiện mới
         // mỗi lần bạn chạy file seed.
         await Event.create([
